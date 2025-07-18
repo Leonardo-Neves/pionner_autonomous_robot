@@ -1,0 +1,21 @@
+ # -------------------- Professor ---------------------
+
+        # alpha = normalizeAngle(-theta_robot + np.arctan2(dy, dx))
+        # beta = normalizeAngle(angle_to_target - np.arctan2(dy, dx))
+
+        # kr = 4 / 20
+        # ka = 8 / 20
+        # kb = -1.5 / 20
+
+        # if abs(alpha) > np.pi/2:
+        #     kr = -kr       
+        #     alpha = normalizeAngle(alpha-np.pi)
+        #     beta = normalizeAngle(beta-np.pi)
+        
+        # v = kr*distance_to_target
+        # w = ka*alpha + kb*beta
+
+        # v = max(min(v, maxv), -maxv)
+        # w = max(min(w, maxw), -maxw)
+
+        # print(v)

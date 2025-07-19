@@ -38,325 +38,48 @@ def compare_coordinates(node1: Node, node2: Node):
     return node1.x == node2.x and node1.y == node2.y
 
 
-# class DStarLite:
-
-#     # Please adjust the heuristic function (h) if you change the list of
-#     # possible motions
-#     motions = [
-#         Node(1, 0, 1),
-#         Node(0, 1, 1),
-#         Node(-1, 0, 1),
-#         Node(0, -1, 1),
-#         Node(1, 1, math.sqrt(2)),
-#         Node(1, -1, math.sqrt(2)),
-#         Node(-1, 1, math.sqrt(2)),
-#         Node(-1, -1, math.sqrt(2))
-#     ]
-
-#     def __init__(self, ox: list, oy: list, grid_size: tuple[int, int]):
-#         # Ensure that within the algorithm implementation all node coordinates
-#         # are indices in the grid and extend
-#         # from 0 to abs(<axis>_max - <axis>_min)
-#         self.x_min_world = int(min(ox))
-#         self.y_min_world = int(min(oy))
-#         self.x_max = grid_size[0]
-#         self.y_max = grid_size[1]
-#         self.obstacles = [Node(x - self.x_min_world, y - self.y_min_world)
-#                           for x, y in zip(ox, oy)]
-#         self.obstacles_xy = {(obstacle.x, obstacle.y) for obstacle in self.obstacles}
-#         self.start = Node(0, 0)
-#         self.goal = Node(0, 0)
-#         self.U = list()  # type: ignore
-#         self.km = 0.0
-#         self.kold = 0.0
-#         self.rhs = self.create_grid(float("inf"))
-#         self.g = self.create_grid(float("inf"))
-#         self.detected_obstacles_xy: set[tuple[int, int]] = set()
-#         self.xy = np.empty((0, 2))
-#         if show_animation:
-#             self.detected_obstacles_for_plotting_x = list()  # type: ignore
-#             self.detected_obstacles_for_plotting_y = list()  # type: ignore
-#         self.initialized = False
-
-#     def create_grid(self, val: float):
-#         return np.full((self.x_max, self.y_max), val)
-
-#     def is_obstacle(self, node: Node):
-#         is_in_obstacles = (node.x, node.y) in self.obstacles_xy
-#         is_in_detected_obstacles = (node.x, node.y) in self.detected_obstacles_xy
-#         return is_in_obstacles or is_in_detected_obstacles
-
-#     def c(self, node1: Node, node2: Node):
-#         if self.is_obstacle(node2):
-#             # Attempting to move from or to an obstacle
-#             return math.inf
-#         new_node = Node(node1.x-node2.x, node1.y-node2.y)
-#         detected_motion = list(filter(lambda motion:
-#                                       compare_coordinates(motion, new_node),
-#                                       self.motions))
-#         return detected_motion[0].cost
-
-#     def h(self, s: Node):
-#         # Cannot use the 2nd euclidean norm as this might sometimes generate
-#         # heuristics that overestimate the cost, making them inadmissible,
-#         # due to rounding errors etc (when combined with calculate_key)
-#         # To be admissible heuristic should
-#         # never overestimate the cost of a move
-#         # hence not using the line below
-#         # return math.hypot(self.start.x - s.x, self.start.y - s.y)
-
-#         # Below is the same as 1; modify if you modify the cost of each move in
-#         # motion
-#         # return max(abs(self.start.x - s.x), abs(self.start.y - s.y))
-#         return 1
-
-#     def calculate_key(self, s: Node):
-#         return (min(self.g[s.x][s.y], self.rhs[s.x][s.y]) + self.h(s)
-#                 + self.km, min(self.g[s.x][s.y], self.rhs[s.x][s.y]))
-
-#     def is_valid(self, node: Node):
-#         if 0 <= node.x < self.x_max and 0 <= node.y < self.y_max:
-#             return True
-#         return False
-
-#     def get_neighbours(self, u: Node):
-#         return [add_coordinates(u, motion) for motion in self.motions
-#                 if self.is_valid(add_coordinates(u, motion))]
-
-#     def pred(self, u: Node):
-#         # Grid, so each vertex is connected to the ones around it
-#         return self.get_neighbours(u)
-
-#     def succ(self, u: Node):
-#         # Grid, so each vertex is connected to the ones around it
-#         return self.get_neighbours(u)
-
-#     def initialize(self, start: Node, goal: Node):
-#         self.start.x = start.x
-#         self.start.y = start.y
-#         self.goal.x = goal.x
-#         self.goal.y = goal.y
-#         if not self.initialized:
-#             self.initialized = True
-#             print('Initializing')
-#             self.U = list()  # Would normally be a priority queue
-#             self.km = 0.0
-#             self.rhs = self.create_grid(math.inf)
-#             self.g = self.create_grid(math.inf)
-#             self.rhs[self.goal.x][self.goal.y] = 0
-#             self.U.append((self.goal, self.calculate_key(self.goal)))
-#             self.detected_obstacles_xy = set()
-
-#     def update_vertex(self, u: Node):
-#         if not compare_coordinates(u, self.goal):
-#             self.rhs[u.x][u.y] = min([self.c(u, sprime) +
-#                                       self.g[sprime.x][sprime.y]
-#                                       for sprime in self.succ(u)])
-#         if any([compare_coordinates(u, node) for node, key in self.U]):
-#             self.U = [(node, key) for node, key in self.U
-#                       if not compare_coordinates(node, u)]
-#             self.U.sort(key=lambda x: x[1])
-#         if self.g[u.x][u.y] != self.rhs[u.x][u.y]:
-#             self.U.append((u, self.calculate_key(u)))
-#             self.U.sort(key=lambda x: x[1])
-
-#     def compare_keys(self, key_pair1: tuple[float, float],
-#                      key_pair2: tuple[float, float]):
-#         return key_pair1[0] < key_pair2[0] or \
-#                (key_pair1[0] == key_pair2[0] and key_pair1[1] < key_pair2[1])
-
-#     def compute_shortest_path(self):
-#         self.U.sort(key=lambda x: x[1])
-#         has_elements = len(self.U) > 0
-#         start_key_not_updated = self.compare_keys(
-#             self.U[0][1], self.calculate_key(self.start)
-#         )
-#         rhs_not_equal_to_g = self.rhs[self.start.x][self.start.y] != \
-#             self.g[self.start.x][self.start.y]
-#         while has_elements and start_key_not_updated or rhs_not_equal_to_g:
-#             self.kold = self.U[0][1]
-#             u = self.U[0][0]
-#             self.U.pop(0)
-#             if self.compare_keys(self.kold, self.calculate_key(u)):
-#                 self.U.append((u, self.calculate_key(u)))
-#                 self.U.sort(key=lambda x: x[1])
-#             elif (self.g[u.x, u.y] > self.rhs[u.x, u.y]).any():
-#                 self.g[u.x, u.y] = self.rhs[u.x, u.y]
-#                 for s in self.pred(u):
-#                     self.update_vertex(s)
-#             else:
-#                 self.g[u.x, u.y] = math.inf
-#                 for s in self.pred(u) + [u]:
-#                     self.update_vertex(s)
-#             self.U.sort(key=lambda x: x[1])
-#             start_key_not_updated = self.compare_keys(
-#                 self.U[0][1], self.calculate_key(self.start)
-#             )
-#             rhs_not_equal_to_g = self.rhs[self.start.x][self.start.y] != \
-#                 self.g[self.start.x][self.start.y]
-
-#     def detect_changes(self):
-#         changed_vertices = list()
-#         if len(self.spoofed_obstacles) > 0:
-#             for spoofed_obstacle in self.spoofed_obstacles[0]:
-#                 if compare_coordinates(spoofed_obstacle, self.start) or \
-#                    compare_coordinates(spoofed_obstacle, self.goal):
-#                     continue
-#                 changed_vertices.append(spoofed_obstacle)
-#                 self.detected_obstacles_xy.add((spoofed_obstacle.x, spoofed_obstacle.y))
-#                 if show_animation:
-#                     self.detected_obstacles_for_plotting_x.append(
-#                         spoofed_obstacle.x + self.x_min_world)
-#                     self.detected_obstacles_for_plotting_y.append(
-#                         spoofed_obstacle.y + self.y_min_world)
-#                     plt.plot(self.detected_obstacles_for_plotting_x,
-#                              self.detected_obstacles_for_plotting_y, ".k")
-#                     plt.pause(pause_time)
-#             self.spoofed_obstacles.pop(0)
-
-#         # Allows random generation of obstacles
-#         random.seed()
-#         if random.random() > 1 - p_create_random_obstacle:
-#             x = random.randint(0, self.x_max - 1)
-#             y = random.randint(0, self.y_max - 1)
-#             new_obs = Node(x, y)
-#             if compare_coordinates(new_obs, self.start) or \
-#                compare_coordinates(new_obs, self.goal):
-#                 return changed_vertices
-#             changed_vertices.append(Node(x, y))
-#             self.detected_obstacles_xy.add((x, y))
-#             if show_animation:
-#                 self.detected_obstacles_for_plotting_x.append(x +
-#                                                               self.x_min_world)
-#                 self.detected_obstacles_for_plotting_y.append(y +
-#                                                               self.y_min_world)
-#                 plt.plot(self.detected_obstacles_for_plotting_x,
-#                          self.detected_obstacles_for_plotting_y, ".k")
-#                 plt.pause(pause_time)
-#         return changed_vertices
-
-#     def compute_current_path(self):
-#         path = list()
-#         current_point = Node(self.start.x, self.start.y)
-#         while not compare_coordinates(current_point, self.goal):
-#             path.append(current_point)
-#             current_point = min(self.succ(current_point),
-#                                 key=lambda sprime:
-#                                 self.c(current_point, sprime) +
-#                                 self.g[sprime.x][sprime.y])
-#         path.append(self.goal)
-#         return path
-
-#     def compare_paths(self, path1: list, path2: list):
-#         if len(path1) != len(path2):
-#             return False
-#         for node1, node2 in zip(path1, path2):
-#             if not compare_coordinates(node1, node2):
-#                 return False
-#         return True
-
-#     def display_path(self, path: list, colour: str, alpha: float = 1.0):
-#         px = [(node.x + self.x_min_world) for node in path]
-#         py = [(node.y + self.y_min_world) for node in path]
-#         drawing = plt.plot(px, py, colour, alpha=alpha)
-#         plt.pause(pause_time)
-#         return drawing
-    
-#     def replan_with_new_obstacles(self, new_obstacle_nodes: list[Node]):
-#         """
-#         Updates the map with a list of new obstacles and triggers a replan.
-#         """
-#         if not new_obstacle_nodes:
-#             return
-
-#         # In a real robot, you'd track the robot's last position before replanning
-#         # For simplicity here, we'll just update costs.
-#         # self.km += self.h(self.last_pos_for_replan)
-        
-#         for u in new_obstacle_nodes:
-#             if (u.x, u.y) not in self.detected_obstacles_xy:
-#                 self.detected_obstacles_xy.add((u.x, u.y))
-#                 # The core of the update: check affected neighbors
-#                 self.update_vertex(u)
-
-#         self.compute_shortest_path()
-
-#     def move_to_next_step(self):
-#         """Calculates and returns the next best node to move to."""
-#         if self.g[self.start.x, self.start.y] == float("inf"):
-#             return None # No path
-
-#         # Find the successor with the minimum cost
-#         next_node = min(self.succ(self.start),
-#                         key=lambda s: self.c(self.start, s) + self.g[s.x, s.y])
-        
-#         # Update the robot's current position (start node) for the next iteration
-#         self.start = next_node
-#         return self.start
-
-#     def get_path(self):
-#         """
-#         Returns the current planned path from the robot's start to the goal
-#         as a list of Node objects.
-#         """
-#         path = []
-#         if self.g[self.start.x, self.start.y] == float("inf"):
-#             return path # Return empty path if no path exists
-
-#         current = self.start
-#         while not compare_coordinates(current, self.goal):
-#             path.append(current)
-#             # Find the successor with the minimum cost to get to the goal
-#             next_node = min(self.succ(current), 
-#                             key=lambda s: self.c(current, s) + self.g[s.x, s.y])
-#             current = next_node
-#             if current is None:
-#                 return path # Path is broken
-#         path.append(self.goal)
-#         return path
-
 class DStarLite:
 
+    # Please adjust the heuristic function (h) if you change the list of
+    # possible motions
     motions = [
-        Node(1, 0, 1), Node(0, 1, 1), Node(-1, 0, 1), Node(0, -1, 1),
-        Node(1, 1, math.sqrt(2)), Node(1, -1, math.sqrt(2)),
-        Node(-1, 1, math.sqrt(2)), Node(-1, -1, math.sqrt(2))
+        Node(1, 0, 1),
+        Node(0, 1, 1),
+        Node(-1, 0, 1),
+        Node(0, -1, 1),
+        Node(1, 1, math.sqrt(2)),
+        Node(1, -1, math.sqrt(2)),
+        Node(-1, 1, math.sqrt(2)),
+        Node(-1, -1, math.sqrt(2))
     ]
 
-    def __init__(self, ox: list, oy: list, grid_size: tuple[int, int]):
-        ## FIX: To use a fixed grid_size from your main script, the old dynamic
-        ## world offset logic must be removed to avoid conflicts.
-        # self.x_min_world = int(min(ox))
-        # self.y_min_world = int(min(oy))
-
-        ## FIX: Correctly assign grid dimensions. grid_size is (height, width).
-        self.y_max = grid_size[0]  # height (rows)
-        self.x_max = grid_size[1]  # width (columns)
-
-        ## FIX: Directly create the obstacle set without offsets.
-        self.obstacles_xy = {(x, y) for x, y in zip(ox, oy)}
-
+    def __init__(self, ox: list, oy: list):
+        # Ensure that within the algorithm implementation all node coordinates
+        # are indices in the grid and extend
+        # from 0 to abs(<axis>_max - <axis>_min)
+        self.x_min_world = int(min(ox))
+        self.y_min_world = int(min(oy))
+        self.x_max = int(abs(max(ox) - self.x_min_world))
+        self.y_max = int(abs(max(oy) - self.y_min_world))
+        self.obstacles = [Node(x - self.x_min_world, y - self.y_min_world)
+                          for x, y in zip(ox, oy)]
+        self.obstacles_xy = {(obstacle.x, obstacle.y) for obstacle in self.obstacles}
         self.start = Node(0, 0)
         self.goal = Node(0, 0)
-        self.U = list()
+        self.U = list()  # type: ignore
         self.km = 0.0
         self.kold = 0.0
-
-        ## FIX: Create grids using the corrected dimensions.
         self.rhs = self.create_grid(float("inf"))
         self.g = self.create_grid(float("inf"))
         self.detected_obstacles_xy: set[tuple[int, int]] = set()
-
-        # These attributes are part of the original code you provided
         self.xy = np.empty((0, 2))
         if show_animation:
-            self.detected_obstacles_for_plotting_x = list()
-            self.detected_obstacles_for_plotting_y = list()
+            self.detected_obstacles_for_plotting_x = list()  # type: ignore
+            self.detected_obstacles_for_plotting_y = list()  # type: ignore
         self.initialized = False
 
     def create_grid(self, val: float):
-        ## FIX: Create grids with the correct (rows, cols) -> (y, x) shape.
-        return np.full((self.y_max, self.x_max), val)
+        return np.full((self.x_max, self.y_max), val)
 
     def is_obstacle(self, node: Node):
         is_in_obstacles = (node.x, node.y) in self.obstacles_xy
@@ -365,18 +88,31 @@ class DStarLite:
 
     def c(self, node1: Node, node2: Node):
         if self.is_obstacle(node2):
+            # Attempting to move from or to an obstacle
             return math.inf
-        dist = math.hypot(node1.x - node2.x, node1.y - node2.y)
-        return dist
+        new_node = Node(node1.x-node2.x, node1.y-node2.y)
+        detected_motion = list(filter(lambda motion:
+                                      compare_coordinates(motion, new_node),
+                                      self.motions))
+        return detected_motion[0].cost
 
     def h(self, s: Node):
-        return math.hypot(self.start.x - s.x, self.start.y - s.y)
+        # Cannot use the 2nd euclidean norm as this might sometimes generate
+        # heuristics that overestimate the cost, making them inadmissible,
+        # due to rounding errors etc (when combined with calculate_key)
+        # To be admissible heuristic should
+        # never overestimate the cost of a move
+        # hence not using the line below
+        # return math.hypot(self.start.x - s.x, self.start.y - s.y)
+
+        # Below is the same as 1; modify if you modify the cost of each move in
+        # motion
+        # return max(abs(self.start.x - s.x), abs(self.start.y - s.y))
+        return 1
 
     def calculate_key(self, s: Node):
-        ## FIX: Use [y, x] indexing for all numpy grid access.
-        g_val = self.g[s.y, s.x]
-        rhs_val = self.rhs[s.y, s.x]
-        return (min(g_val, rhs_val) + self.h(s) + self.km, min(g_val, rhs_val))
+        return (min(self.g[s.x][s.y], self.rhs[s.x][s.y]) + self.h(s)
+                + self.km, min(self.g[s.x][s.y], self.rhs[s.x][s.y]))
 
     def is_valid(self, node: Node):
         if 0 <= node.x < self.x_max and 0 <= node.y < self.y_max:
@@ -388,123 +124,143 @@ class DStarLite:
                 if self.is_valid(add_coordinates(u, motion))]
 
     def pred(self, u: Node):
+        # Grid, so each vertex is connected to the ones around it
         return self.get_neighbours(u)
 
     def succ(self, u: Node):
+        # Grid, so each vertex is connected to the ones around it
         return self.get_neighbours(u)
 
     def initialize(self, start: Node, goal: Node):
-        ## FIX: Assign start and goal directly without world offsets.
-        self.start = start
-        self.goal = goal
-
-        # The rest of your initialize logic is preserved
+        self.start.x = start.x - self.x_min_world
+        self.start.y = start.y - self.y_min_world
+        self.goal.x = goal.x - self.x_min_world
+        self.goal.y = goal.y - self.y_min_world
         if not self.initialized:
             self.initialized = True
             print('Initializing')
-            self.U = list()
+            self.U = list()  # Would normally be a priority queue
             self.km = 0.0
             self.rhs = self.create_grid(math.inf)
             self.g = self.create_grid(math.inf)
-            
-            ## FIX: Use [y, x] indexing for numpy grid access.
-            self.rhs[self.goal.y, self.goal.x] = 0
+            self.rhs[self.goal.x][self.goal.y] = 0
             self.U.append((self.goal, self.calculate_key(self.goal)))
             self.detected_obstacles_xy = set()
 
     def update_vertex(self, u: Node):
         if not compare_coordinates(u, self.goal):
-            ## FIX: Use [y, x] indexing for numpy grid access.
-            self.rhs[u.y, u.x] = min([self.c(u, sprime) +
-                                      self.g[sprime.y, sprime.x]
+            self.rhs[u.x][u.y] = min([self.c(u, sprime) +
+                                      self.g[sprime.x][sprime.y]
                                       for sprime in self.succ(u)])
         if any([compare_coordinates(u, node) for node, key in self.U]):
             self.U = [(node, key) for node, key in self.U
                       if not compare_coordinates(node, u)]
             self.U.sort(key=lambda x: x[1])
-            
-        ## FIX: Use [y, x] indexing for numpy grid access.
-        if self.g[u.y, u.x] != self.rhs[u.y, u.x]:
+        if self.g[u.x][u.y] != self.rhs[u.x][u.y]:
             self.U.append((u, self.calculate_key(u)))
             self.U.sort(key=lambda x: x[1])
 
-    def compare_keys(self, key_pair1: tuple, key_pair2: tuple):
+    def compare_keys(self, key_pair1: tuple[float, float],
+                     key_pair2: tuple[float, float]):
         return key_pair1[0] < key_pair2[0] or \
                (key_pair1[0] == key_pair2[0] and key_pair1[1] < key_pair2[1])
 
     def compute_shortest_path(self):
         self.U.sort(key=lambda x: x[1])
-        ## FIX: Use [y, x] indexing for numpy grid access.
-        while self.U and (self.compare_keys(self.U[0][1], self.calculate_key(self.start)) or
-               self.rhs[self.start.y, self.start.x] != self.g[self.start.y, self.start.x]):
+        has_elements = len(self.U) > 0
+        start_key_not_updated = self.compare_keys(
+            self.U[0][1], self.calculate_key(self.start)
+        )
+        rhs_not_equal_to_g = self.rhs[self.start.x][self.start.y] != \
+            self.g[self.start.x][self.start.y]
+        while has_elements and start_key_not_updated or rhs_not_equal_to_g:
             self.kold = self.U[0][1]
             u = self.U[0][0]
             self.U.pop(0)
             if self.compare_keys(self.kold, self.calculate_key(u)):
                 self.U.append((u, self.calculate_key(u)))
                 self.U.sort(key=lambda x: x[1])
-            ## FIX: Use [y, x] indexing and correct the `.any()` call which is for arrays.
-            elif self.g[u.y, u.x] > self.rhs[u.y, u.x]:
-                self.g[u.y, u.x] = self.rhs[u.y, u.x]
+            elif (self.g[u.x, u.y] > self.rhs[u.x, u.y]).any():
+                self.g[u.x, u.y] = self.rhs[u.x, u.y]
                 for s in self.pred(u):
                     self.update_vertex(s)
             else:
-                self.g[u.y, u.x] = math.inf
+                self.g[u.x, u.y] = math.inf
                 for s in self.pred(u) + [u]:
                     self.update_vertex(s)
             self.U.sort(key=lambda x: x[1])
+            start_key_not_updated = self.compare_keys(
+                self.U[0][1], self.calculate_key(self.start)
+            )
+            rhs_not_equal_to_g = self.rhs[self.start.x][self.start.y] != \
+                self.g[self.start.x][self.start.y]
 
-    # --- Methods below are from your original code, now with corrected indexing ---
-    
+    def detect_changes(self):
+        changed_vertices = list()
+        if len(self.spoofed_obstacles) > 0:
+            for spoofed_obstacle in self.spoofed_obstacles[0]:
+                if compare_coordinates(spoofed_obstacle, self.start) or \
+                   compare_coordinates(spoofed_obstacle, self.goal):
+                    continue
+                changed_vertices.append(spoofed_obstacle)
+                self.detected_obstacles_xy.add((spoofed_obstacle.x, spoofed_obstacle.y))
+                if show_animation:
+                    self.detected_obstacles_for_plotting_x.append(
+                        spoofed_obstacle.x + self.x_min_world)
+                    self.detected_obstacles_for_plotting_y.append(
+                        spoofed_obstacle.y + self.y_min_world)
+                    plt.plot(self.detected_obstacles_for_plotting_x,
+                             self.detected_obstacles_for_plotting_y, ".k")
+                    plt.pause(pause_time)
+            self.spoofed_obstacles.pop(0)
+
+        # Allows random generation of obstacles
+        random.seed()
+        if random.random() > 1 - p_create_random_obstacle:
+            x = random.randint(0, self.x_max - 1)
+            y = random.randint(0, self.y_max - 1)
+            new_obs = Node(x, y)
+            if compare_coordinates(new_obs, self.start) or \
+               compare_coordinates(new_obs, self.goal):
+                return changed_vertices
+            changed_vertices.append(Node(x, y))
+            self.detected_obstacles_xy.add((x, y))
+            if show_animation:
+                self.detected_obstacles_for_plotting_x.append(x +
+                                                              self.x_min_world)
+                self.detected_obstacles_for_plotting_y.append(y +
+                                                              self.y_min_world)
+                plt.plot(self.detected_obstacles_for_plotting_x,
+                         self.detected_obstacles_for_plotting_y, ".k")
+                plt.pause(pause_time)
+        return changed_vertices
+
     def compute_current_path(self):
         path = list()
         current_point = Node(self.start.x, self.start.y)
         while not compare_coordinates(current_point, self.goal):
             path.append(current_point)
-            ## FIX: Use [y, x] indexing for numpy grid access.
             current_point = min(self.succ(current_point),
                                 key=lambda sprime:
                                 self.c(current_point, sprime) +
-                                self.g[sprime.y, sprime.x])
+                                self.g[sprime.x][sprime.y])
         path.append(self.goal)
         return path
 
-    def replan_with_new_obstacles(self, new_obstacle_nodes: list[Node]):
-        if not new_obstacle_nodes:
-            return
-        # self.km += self.h(self.start)
-        for u in new_obstacle_nodes:
-            if (u.x, u.y) not in self.detected_obstacles_xy:
-                self.detected_obstacles_xy.add((u.x, u.y))
-                self.update_vertex(u)
-        self.compute_shortest_path()
+    def compare_paths(self, path1: list, path2: list):
+        if len(path1) != len(path2):
+            return False
+        for node1, node2 in zip(path1, path2):
+            if not compare_coordinates(node1, node2):
+                return False
+        return True
 
-    def move_to_next_step(self):
-        ## FIX: Use [y, x] indexing for numpy grid access.
-        if self.g[self.start.y, self.start.x] == float("inf"):
-            return None
-        next_node = min(self.succ(self.start),
-                        key=lambda s: self.c(self.start, s) + self.g[s.y, s.x])
-        # self.goal = next_node
-        return next_node
-
-    def get_path(self):
-        path = []
-        ## FIX: Use [y, x] indexing for numpy grid access.
-        if self.g[self.start.y, self.start.x] == float("inf"):
-            return path
-        current = self.start
-        while not compare_coordinates(current, self.goal):
-            path.append(current)
-            ## FIX: Use [y, x] indexing for numpy grid access.
-            next_node = min(self.succ(current),
-                            key=lambda s: self.c(current, s) + self.g[s.y, s.x])
-            current = next_node
-            if current is None:
-                return path
-        path.append(self.goal)
-        return path
-
+    def display_path(self, path: list, colour: str, alpha: float = 1.0):
+        px = [(node.x + self.x_min_world) for node in path]
+        py = [(node.y + self.y_min_world) for node in path]
+        drawing = plt.plot(px, py, colour, alpha=alpha)
+        plt.pause(pause_time)
+        return drawing
 
     def main(self, start: Node, goal: Node,
              spoofed_ox: list, spoofed_oy: list):

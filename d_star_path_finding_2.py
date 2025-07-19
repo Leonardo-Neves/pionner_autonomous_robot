@@ -297,7 +297,8 @@ def moveTargetPosition(clientID, robotHandle, occupancy_grid, target_position, g
             angle_error = angle_to_target - yaw_robot
             angle_error = normalizeAngle(angle_error)
 
-            Kp_w, Ki_w, Kd_w = 1.3, 0.24, 0.001
+            # Kp_w, Ki_w, Kd_w = 1.3, 0.24, 0.001
+            Kp_w, Ki_w, Kd_w = 1.3, 0.24, 0.0006
 
             integral_error_angle += angle_error * dt
 
